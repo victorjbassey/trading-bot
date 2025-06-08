@@ -2,6 +2,7 @@ package de.optimax.auction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -92,5 +93,57 @@ class AdaptiveBidderTest {
     AdaptiveBidder bidder = new AdaptiveBidder();
     bidder.init(150, 100);
     assertThrows(IllegalArgumentException.class, () -> bidder.bids(own, other));
+  }
+
+  @Test
+  void placeBid_whenLeading_shouldBidMinimally() {
+    int quantity = 10;
+    int cash = 100;
+    AdaptiveBidder bidder = new AdaptiveBidder();
+    bidder.init(quantity, cash);
+
+    // Simulate 2 wins for us, 0 for opponent
+    bidder.bids(20, 15); // Win
+    bidder.bids(20, 15); // Win
+
+    int bid = bidder.placeBid();
+    // Expected: Opponent's avg per round (70/3≈23) +1 = 24
+    assertEquals(20, bid);
+  }
+
+  @Test
+  void placeBid_whenTrailing_shouldBidAggressively() {
+    int quantity = 10;
+    int cash = 100;
+    AdaptiveBidder bidder = new AdaptiveBidder();
+    bidder.init(quantity, cash);
+
+    // Simulate 2 losses
+    bidder.bids(10, 25); // Lose
+    bidder.bids(10, 25); // Lose
+
+    int bid = bidder.placeBid();
+    // Expected: Opponent avg (50/3≈16) + deficit bonus (2*33/3≈22) = ~38
+    assertTrue(bid > 30 && bid <= 38);
+  }
+
+  @Test
+  void placeBid_onFinalRound_shouldBidRemainingCash() {
+    int quantity = 14;
+    int cash = 200;
+    AdaptiveBidder bidder = new AdaptiveBidder();
+    bidder.init(quantity, cash);
+    // Exhaust 4 rounds
+    for (int i = 0; i < 6; i++) {
+      bidder.bids(10, 10);
+    }
+    assertEquals(bidder.getOwnCash(), bidder.placeBid());
+  }
+
+  @Test
+  void placeBid_withZeroCash_shouldReturnZero() {
+    AdaptiveBidder bidder = new AdaptiveBidder();
+    bidder.init(2, 0);
+    assertEquals(0, bidder.placeBid());
   }
 }

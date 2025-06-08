@@ -1,5 +1,27 @@
 package de.optimax.auction;
 
+/**
+ * An adaptive bidding agent for sequential 2-QU auctions.
+ *
+ * <p>Strategy highlights:
+ *
+ * <ul>
+ *   <li><b>Dynamic adjustment</b>: Modifies aggression based on win deficit/surplus
+ *   <li><b>Resource conservation</b>: Bases bids on remaining cash/rounds ratio
+ *   <li><b>Opponent modeling</b>: Tracks opponent's cash expenditure and win count
+ *   <li><b>Round prioritization</b>: Increases bids when trailing, minimizes when leading
+ * </ul>
+ *
+ * Primary objective is to secure more units than opponent. If tied, maximizes retained cash.
+ *
+ * @implNote Tracks key auction state through:
+ *     <pre>
+ *   - ownCash/opponentCash: Remaining monetary units (MU)
+ *   - ownWins/opponentWins: Won batches (2 QU per win)
+ *   - ties: Split batches (1 QU each)
+ *   - totalRounds: Total batches = quantity / 2
+ * </pre>
+ */
 public class AdaptiveBidder implements Bidder {
   private int totalRounds;
   private int ownCash;
@@ -27,7 +49,27 @@ public class AdaptiveBidder implements Bidder {
 
   @Override
   public int placeBid() {
-    return 0;
+    if (this.ownCash == 0) {
+      return 0;
+    }
+
+    int roundsLeft = this.totalRounds - (this.ownWins + this.opponentWins + this.ties);
+    // Calculate average bids per remaining round
+    int avgOwnBid = this.ownCash / roundsLeft;
+    int avgOpponentBid = this.opponentCash / roundsLeft;
+    int deficit = this.opponentWins - this.ownWins; // Negative if we're leading
+
+    int bid;
+    if (deficit > 0) {
+      // We're behind: Bid opponent's average + deficit-adjusted bonus
+      bid = Math.min(ownCash, avgOpponentBid + 1);
+      int bonus = (deficit * avgOwnBid) / roundsLeft;
+      bid = Math.min(ownCash, bid + bonus);
+    } else {
+      // We're leading or tied: Bid minimum to win or tie cheaply
+      bid = Math.min(avgOwnBid, avgOpponentBid + 1);
+    }
+    return bid;
   }
 
   @Override
