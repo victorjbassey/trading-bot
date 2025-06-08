@@ -202,7 +202,7 @@ class AdaptiveBidderTest {
   }
 
   @Test
-  public void shouldNeverExceedOwnCash() {
+  void shouldNeverExceedOwnCash() {
     AdaptiveBidder bidder = new AdaptiveBidder();
     bidder.init(20, 100);
     for (int i = 0; i < 10; i++) {
