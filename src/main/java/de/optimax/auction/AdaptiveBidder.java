@@ -31,7 +31,24 @@ public class AdaptiveBidder implements Bidder {
   }
 
   @Override
-  public void bids(int own, int other) {}
+  public void bids(int own, int other) {
+    if (own < 0 || other < 0) {
+      throw new IllegalArgumentException("bids cannot be negative");
+    }
+    if (own > this.ownCash || other > this.opponentCash) {
+      throw new IllegalArgumentException("bids exceed available cash");
+    }
+    // Update cash and win counts
+    this.ownCash -= own;
+    this.opponentCash -= other;
+    if (own > other) {
+      this.ownWins++;
+    } else if (own < other) {
+      this.opponentWins++;
+    } else {
+      this.ties++;
+    }
+  }
 
   // --- Helper Getters for auction state (Useful for testing) ---
 
